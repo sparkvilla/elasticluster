@@ -1,0 +1,13 @@
+---
+
+- name: Deploy gbids app
+  tags:
+    - gbids
+  hosts: gbids
+  roles:
+    - role: gbids
+      nfs: True
+      group_name_nfs: "{{hostvars[inventory_hostname]['groups']['nfs-server'][0]}}"
+      nfs_ip: "{{hostvars[inventory_hostname]['elasticluster']['nodes'][group_name_nfs]['ips'][0]}}"
+      group_name_registry: "{{hostvars[inventory_hostname]['groups']['docker-registry'][0]}}"
+      registry_ip: "{{hostvars[inventory_hostname]['elasticluster']['nodes'][group_name_registry]['ips'][0]}}"

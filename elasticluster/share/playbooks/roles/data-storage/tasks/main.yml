@@ -1,0 +1,19 @@
+---
+
+- name: Create a new data volume
+  os_volume:
+    state: present
+    size: "{{ volume_size_gb }}"
+    display_name: "{{ volume_name }}"
+    wait: yes
+  when: 'volume_size_gb is defined and volume_size_gb|int > 0'
+
+
+- name: Mount a new data volume
+  os_server_volume:
+    state: present
+    volume: "{{ volume_name }}"
+    server: 
+    device: /data
+    wait: yes
+  when: 'volume_size_gb is defined and volume_size_gb|int > 0'

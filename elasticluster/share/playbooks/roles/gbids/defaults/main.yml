@@ -1,0 +1,6 @@
+# Where the packeges get installed
+workspace: /home/ubuntu
+
+# Default value to
+nfs: False
+nfs_ip: None

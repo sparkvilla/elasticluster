@@ -1,0 +1,108 @@
+---
+
+- include_tasks: init-Debian.yml
+
+- name: Check that install.py exists
+  stat:
+    path: "{{workspace}}/install.py"
+  register: install_result
+
+- name: Grab develop version of gc3pie.
+  get_url:
+    url: https://raw.githubusercontent.com/uzh/gc3pie/master/install.py
+    dest: "{{workspace}}"
+    backup: yes
+  become: yes
+  become_user: ubuntu
+  when: install_result.stat.exists == False
+
+- name: Install gc3pie
+  command: >
+    python /home/ubuntu/install.py --develop -y
+  become: yes
+  become_user: ubuntu
+  when: install_result.stat.exists == False
+
+#- debug:
+#    msg: "This is nfs_ip: {{nfs_ip}}"
+
+# Place gbids_NFS_IP within the gc3pie conf file
+- replace:
+    dest: "{{ role_path }}/files/gc3pie.conf"
+    regexp: 'gbids_NFS_IP'
+    replace: "{{nfs_ip}}"
+  when: "{{nfs}}"
+  delegate_to: localhost
+
+# Place gbids_registry_IP within the gc3pie conf file
+- replace:
+    dest: "{{ role_path }}/files/gc3pie.conf"
+    regexp: 'gbids_REGISTRY_IP'
+    replace: "{{registry_ip}}"
+  delegate_to: localhost
+
+- name: Create .gc3 directory
+  file:
+    path: "{{workspace}}/.gc3"
+    state: directory
+    mode: 0755
+  become: yes
+  become_user: ubuntu
+
+- name: Copy gc3pie conf file to the host
+  copy:
+    src: "{{ role_path }}/files/gc3pie.diego.conf" #test
+    dest: "{{workspace}}/.gc3/gc3pie.conf"
+  when: "{{nfs}}"
+
+- name: Copy enhancer conf file to the host
+  copy:
+    src: "{{ role_path }}/files/enhancer.ch-openrc.sh" #test
+    dest: "{{workspace}}/enhancer.ch-openrc.sh"
+
+- name: Install additional pip packages
+  pip:
+    name:
+      - os-client-config
+      - python-novaclient
+      - pybids
+      - python-neutronclient
+      - python-openstackclient
+    virtualenv: "{{workspace}}/gc3pie/"
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ workspace }}/gc3pie/local/bin/"
+  become: yes
+  become_user: ubuntu
+
+- git:
+    repo: 'https://c4science.ch/source/gbids.git'
+    dest: "{{workspace}}/gbids"
+  become: yes
+  become_user: ubuntu
+
+- name: Docker installed version.
+  command: >
+    docker --version
+    warn=no
+  changed_when: false
+  failed_when: false
+  check_mode: no
+  register: docker_installed_version
+
+# Place gbids_registry_IP within the daemon.json conf file
+- replace:
+    dest: "{{ role_path }}/files/daemon.json"
+    regexp: 'gbids_REGISTRY_IP'
+    replace: "{{registry_ip}}"
+  delegate_to: localhost
+
+- name: Copy daemon.json file to the host
+  copy:
+    src: "{{ role_path }}/files/daemon.json"
+    dest: /etc/docker/daemon.json
+
+- name: Restart service docker
+  service:
+    name: docker
+    state: restarted
+  when: docker_installed_version.rc != 0

@@ -1,0 +1,10 @@
+---
+
+
+- name: Create a data storage for the host
+  tags:
+    - data-storage
+  hosts: data-storage
+  become: yes
+  roles:
+    - role: data-storage

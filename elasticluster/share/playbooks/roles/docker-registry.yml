@@ -1,0 +1,10 @@
+---
+
+- name: Configure docker registry
+  tags:
+    - docker-registry
+  hosts: docker-registry
+  become: yes
+  roles:
+    - role: docker
+    - role: docker-registry
